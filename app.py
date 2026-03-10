@@ -18,16 +18,18 @@ st.markdown("""
 def carregar_dados():
     import zipfile
     try:
-        # 1. Abrindo a "caixa" do ZIP
-        zf = zipfile.ZipFile("dados_dashboard_validado.csv.zip")
-        
-        # 2. Manda o Pandas ler ESPECIFICAMENTE o arquivo correto, ignorando o fantasma do Mac
-        df = pd.read_csv(zf.open("dados_dashboard_validado.csv"))
-        
+        try:
+            # Tentativa 1: Trata como um ZIP real e desvia do fantasma do Mac
+            zf = zipfile.ZipFile("dados_dashboard_validado.csv.zip")
+            df = pd.read_csv(zf.open("dados_dashboard_validado.csv"))
+        except zipfile.BadZipFile:
+            # Tentativa 2: Se o Python avisar que "não é um ZIP". O Pandas le direto!
+            df = pd.read_csv("dados_dashboard_validado.csv.zip")
+            
         df['Score'] = (100 * (1 - df['risco_predito'])).round(0)
         return df
     except Exception as e:
-        st.error(f"Erro interno do Python: {e}")
+        st.error(f"Erro definitivo de leitura: {e}")
         return None
 
 df = carregar_dados()
