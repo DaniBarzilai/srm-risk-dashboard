@@ -1,0 +1,13 @@
+Fintech,Variável,Impacto
+Juvo,Valor,0.18712592
+ParcelaMais,Valor,0.22946042
+Juvo,Valor Aquisição,0.17221354
+ParcelaMais,Valor Aquisição,0.19537146
+Juvo,prazo_pagamento_dias,0.47878718
+ParcelaMais,prazo_pagamento_dias,0.54613405
+Juvo,mes_vencimento,0.2187241
+ParcelaMais,mes_vencimento,0.22125575
+Juvo,dia_semana_vencimento,0.009532718
+ParcelaMais,dia_semana_vencimento,0.009797201
+Juvo,Fintech_ParcelaMais,0.0
+ParcelaMais,Fintech_ParcelaMais,0.0
