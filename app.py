@@ -73,7 +73,7 @@ if pagina == "🏠 Home - Panorama":
         fig_v = px.bar(df_v, x='Fintech', y='Valor', template="plotly_dark")
         st.plotly_chart(fig_v, use_container_width=True)
 
-# PÁGINA 2: DETALHE POR FINTECH (AGORA COM SHAP LOCAL!)
+# PÁGINA 2: DETALHE POR FINTECH
 elif pagina == "📊 Detalhe por Fintech":
     st.title("🔎 Análise Individualizada")
     st.sidebar.markdown("---")
@@ -102,7 +102,7 @@ elif pagina == "📊 Detalhe por Fintech":
         fig_scatter = px.scatter(df_f, x="Score", y="Valor", color="Faixa_Risco", template="plotly_dark")
         st.plotly_chart(fig_scatter, use_container_width=True)
 
-    # --- NOVO: GRÁFICO DE SHAP LOCAL ---
+    # ---GRÁFICO DE SHAP LOCAL ---
     st.markdown("---")
     st.subheader(f"🧠 Raio-X de Risco: {fintech_sel}")
     try:
@@ -114,7 +114,7 @@ elif pagina == "📊 Detalhe por Fintech":
             fig_shap_local = px.bar(df_shap_f, x='Impacto', y='Variável', orientation='h',
                                     color_discrete_sequence=['#FFA15A'], template="plotly_dark")
             st.plotly_chart(fig_shap_local, use_container_width=True)
-            st.info("💡 **Dica de Gestão:** As barras maiores mostram exatamente quais os fatores específicos que estão a puxar o score desta fintech para baixo (ou para cima). É aqui que o analista deve focar a sua investigação!")
+            st.info("💡 **Dica:** As barras maiores mostram exatamente quais os fatores específicos que puxam o score desta fintech para baixo (ou para cima).")
         else:
             st.warning("Sem dados de impacto detalhado para esta Fintech.")
     except FileNotFoundError:
