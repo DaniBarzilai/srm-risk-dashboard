@@ -17,8 +17,8 @@ st.markdown("""
 @st.cache_data
 def carregar_dados():
     try:
-        df = pd.read_csv("dados_dashboard_validado.csv")
-        df['Score'] = (100 * (1 - df['risco_predito'])).round(0)
+df = pd.read_csv("dados_dashboard_validado.csv.zip")
+df['Score'] = (100 * (1 - df['risco_predito'])).round(0)
         return df
     except:
         return None
