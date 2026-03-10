@@ -23,7 +23,7 @@ def carregar_dados():
             zf = zipfile.ZipFile("dados_dashboard_validado.csv.zip")
             df = pd.read_csv(zf.open("dados_dashboard_validado.csv"))
         except zipfile.BadZipFile:
-            # Tentativa 2: Se o Python avisar que "não é um ZIP". O Pandas le direto!
+            # Tentativa 2: Leitura direta caso o ficheiro não esteja comprimido
             df = pd.read_csv("dados_dashboard_validado.csv.zip")
             
         df['Score'] = (100 * (1 - df['risco_predito'])).round(0)
@@ -35,12 +35,11 @@ def carregar_dados():
 df = carregar_dados()
 
 if df is None:
-    st.error("Arquivo 'dados_dashboard_validado.csv' não encontrado.")
     st.stop()
 
 # --- 3. NAVEGAÇÃO (SIDEBAR) ---
 st.sidebar.title("🚀 SRM Ventures")
-pagina = st.sidebar.selectbox("Navegação",
+pagina = st.sidebar.selectbox("Navegação", 
     ["🏠 Home - Panorama", "📊 Detalhe por Fintech", "🔍 Por que este Score? (SHAP)", "⚠️ Alertas de Risco"])
 
 # --- 4. LÓGICA DAS PÁGINAS ---
@@ -48,25 +47,21 @@ pagina = st.sidebar.selectbox("Navegação",
 # PÁGINA 1: HOME
 if pagina == "🏠 Home - Panorama":
     st.title("🎯 Panorama Geral da Carteira")
-
-    # Linha 1: KPIs de Negócio
+    
     st.subheader("Métricas de Negócio")
     col1, col2, col3 = st.columns(3)
     col1.metric("Score Médio SRM", f"{df['Score'].mean():.0f} / 100")
     col2.metric("Perda Esperada Total", f"R$ {df['Perda_Esperada_R$'].sum():,.2f}")
     col3.metric("Exposição Total", f"R$ {df['Valor'].sum():,.2f}")
 
-    # Linha 2: KPIs do Modelo (Estatística)
     st.subheader("Validação Técnica do Modelo (XGBoost)")
     col_m1, col_m2, col_m3 = st.columns(3)
-    # Estes são os valores do seu modelo no teste
     col_m1.metric("AUC-ROC", "0.74", "Boa separação de risco")
-    col_m2.metric("Estatística KS", "0.34", "Bela distinção")
+    col_m2.metric("Estatística KS", "0.34", "Boa distinção")
     col_m3.metric("Acurácia Global", "67%", "Taxa de acerto")
 
     st.markdown("---")
-
-    # Gráficos
+    
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("Distribuição de Score")
@@ -78,7 +73,7 @@ if pagina == "🏠 Home - Panorama":
         fig_v = px.bar(df_v, x='Fintech', y='Valor', template="plotly_dark")
         st.plotly_chart(fig_v, use_container_width=True)
 
-# PÁGINA 2: DETALHE POR FINTECH
+# PÁGINA 2: DETALHE POR FINTECH (AGORA COM SHAP LOCAL!)
 elif pagina == "📊 Detalhe por Fintech":
     st.title("🔎 Análise Individualizada")
     st.sidebar.markdown("---")
@@ -87,7 +82,7 @@ elif pagina == "📊 Detalhe por Fintech":
     score_range = st.sidebar.slider("Filtrar por Faixa de Score:", 0, 100, (0, 100))
 
     df_f = df[(df['Fintech'] == fintech_sel) & (df['Score'] >= score_range[0]) & (df['Score'] <= score_range[1])]
-
+    
     m1, m2, m3 = st.columns(3)
     score_atual = df_f['Score'].mean() if not df_f.empty else 0
     m1.metric(f"Score Médio - {fintech_sel}", f"{score_atual:.0f}")
@@ -107,34 +102,47 @@ elif pagina == "📊 Detalhe por Fintech":
         fig_scatter = px.scatter(df_f, x="Score", y="Valor", color="Faixa_Risco", template="plotly_dark")
         st.plotly_chart(fig_scatter, use_container_width=True)
 
+    # --- NOVO: GRÁFICO DE SHAP LOCAL ---
+    st.markdown("---")
+    st.subheader(f"🧠 Raio-X de Risco: {fintech_sel}")
+    try:
+        df_shap_local = pd.read_csv("shap_local_fintechs.csv")
+        # Isolar os dados da fintech escolhida no menu
+        df_shap_f = df_shap_local[df_shap_local['Fintech'] == fintech_sel].sort_values(by='Impacto', ascending=True)
+
+        if not df_shap_f.empty:
+            fig_shap_local = px.bar(df_shap_f, x='Impacto', y='Variável', orientation='h',
+                                    color_discrete_sequence=['#FFA15A'], template="plotly_dark")
+            st.plotly_chart(fig_shap_local, use_container_width=True)
+            st.info("💡 **Dica de Gestão:** As barras maiores mostram exatamente quais os fatores específicos que estão a puxar o score desta fintech para baixo (ou para cima). É aqui que o analista deve focar a sua investigação!")
+        else:
+            st.warning("Sem dados de impacto detalhado para esta Fintech.")
+    except FileNotFoundError:
+        st.warning("⚠️ O ficheiro 'shap_local_fintechs.csv' não foi encontrado.")
+
 # PÁGINA 3: SHAP
 elif pagina == "🔍 Por que este Score? (SHAP)":
-    st.title("🧠 Inteligência do Modelo (SHAP)")
-    st.markdown("Entenda quais variáveis reais mais impactam o Score final de crédito do seu modelo XGBoost.")
-
+    st.title("🧠 Inteligência do Modelo (SHAP Global)")
+    st.markdown("Entenda quais variáveis reais mais impactam o Score final de crédito do seu modelo XGBoost de forma geral na SRM.")
+    
     try:
         df_shap = pd.read_csv("shap_global_srm.csv")
-        df_shap_top = df_shap.head(5).sort_values(by='Impacto', ascending=True)
-
+        df_shap_top = df_shap.head(10).sort_values(by='Impacto', ascending=True)
+        
         fig_shap = px.bar(df_shap_top, x='Impacto', y='Variável', orientation='h',
-                          title="Top 5 Variáveis de Maior Impacto no Risco",
+                          title="Top 10 Variáveis de Maior Impacto no Risco",
                           color_discrete_sequence=['#636EFA'], template="plotly_dark")
         st.plotly_chart(fig_shap, use_container_width=True)
-
-        st.info("""
-        **Como ler este gráfico?** Quanto maior a barra, maior foi a influência matemática dessa variável na
-        decisão do algoritmo XGBoost durante a classificação da carteira.
-        """)
     except FileNotFoundError:
-        st.warning("⚠️ O arquivo 'shap_global_srm.csv' não foi encontrado.")
+        st.warning("⚠️ O ficheiro 'shap_global_srm.csv' não foi encontrado.")
 
 # PÁGINA 4: ALERTAS
 elif pagina == "⚠️ Alertas de Risco":
     st.title("⚠️ Painel de Monitoramento Crítico")
     df_a = df[df['Faixa_Risco'] == 'Alto'].sort_values(by='Score', ascending=True)
-
+    
     if df_a.empty:
-        st.success("Tudo certo! Nenhuma operação de alto risco detectada no momento.")
+        st.success("Tudo certo! Nenhuma operação de alto risco detetada no momento.")
     else:
         st.error(f"Existem {len(df_a)} operações em nível CRÍTICO.")
         st.dataframe(df_a[['Fintech', 'Valor', 'Score', 'prazo_pagamento_dias']], use_container_width=True)
