@@ -16,8 +16,14 @@ st.markdown("""
 # --- 2. CARREGAMENTO DE DADOS PRINCIPAIS ---
 @st.cache_data
 def carregar_dados():
+    import zipfile
     try:
-        df = pd.read_csv("dados_dashboard_validado.csv.zip")
+        # 1. Abrindo a "caixa" do ZIP
+        zf = zipfile.ZipFile("dados_dashboard_validado.csv.zip")
+        
+        # 2. Manda o Pandas ler ESPECIFICAMENTE o arquivo correto, ignorando o fantasma do Mac
+        df = pd.read_csv(zf.open("dados_dashboard_validado.csv"))
+        
         df['Score'] = (100 * (1 - df['risco_predito'])).round(0)
         return df
     except Exception as e:
