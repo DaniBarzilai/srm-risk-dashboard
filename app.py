@@ -20,7 +20,8 @@ def carregar_dados():
         df = pd.read_csv("dados_dashboard_validado.csv.zip")
         df['Score'] = (100 * (1 - df['risco_predito'])).round(0)
         return df
-    except:
+    except Exception as e:
+        st.error(f"Erro interno do Python: {e}")
         return None
 
 df = carregar_dados()
